@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections;
 using System.Diagnostics;
+using System.IO;
+using System.Linq;
 using System.Text;
 using UnityEngine;
 using UnityEngine.Assertions;
@@ -12,7 +14,15 @@ namespace DevTools.Testing;
 // separately, while this fixture waits for the process to exit.
 internal sealed class TestProcess
 {
+  // Set in the child's environment so it can tell it was started by a test plan.
+  internal const string ChildVariable = "DEVTOOLS_TEST_CHILD";
+
   private const int DefaultTimeOut = 600000; // 10 minutes
+
+  // Parent launch arguments that the child must share to use the same save/config/log locations.
+  // The log file is given its own name so the two processes don't overwrite each other's log.
+  private const string LogFileArg = "-logfile";
+  private static readonly string[] InheritedArgs = ["-savedatafolder", LogFileArg];
 
   private Process process;
   private bool timedOut;
@@ -39,6 +49,19 @@ internal sealed class TestProcess
     string fileName = Environment.GetCommandLineArgs()[0];
     StringBuilder claBuilder = new();
     claBuilder.Append($"--pid \"{mod.PackageId}\" -e"); // -batchmode
+    foreach (string arg in InheritedArgs)
+    {
+      if (ContainsArg(job.commandLineArgs, arg) || GetParentArgValue(arg) is not { } value)
+        continue;
+
+      if (arg == LogFileArg)
+      {
+        value = Path.Combine(Path.GetDirectoryName(value) ?? "",
+          $"{Path.GetFileNameWithoutExtension(value)}-child{Path.GetExtension(value)}");
+      }
+      // The game only recognizes -savedatafolder in the -name=value form; -logfile takes a separate value.
+      claBuilder.Append(arg == LogFileArg ? $" {arg} \"{value}\"" : $" {arg}=\"{value}\"");
+    }
     if (!job.commandLineArgs.NullOrEmpty())
     {
       claBuilder.Append($" {job.commandLineArgs}");
@@ -47,6 +70,8 @@ internal sealed class TestProcess
     process = new Process();
     process.StartInfo.FileName = fileName;
     process.StartInfo.Arguments = claBuilder.ToString();
+    process.StartInfo.UseShellExecute = false;
+    process.StartInfo.EnvironmentVariables[ChildVariable] = "1";
     process.StartInfo.CreateNoWindow = false;
     process.StartInfo.WindowStyle = ProcessWindowStyle.Minimized;
     Assert.IsTrue(process.Start(), "Process was unable to be started.");
@@ -91,6 +116,31 @@ internal sealed class TestProcess
     int exitCode = process.ExitCode;
     DevLog.Write($"Finished with exit code {exitCode}");
     Expect.AreEqual(expected: 0, exitCode, $"Process exited with code {exitCode}");
+  }
+
+  private static bool ContainsArg(string args, string name)
+  {
+    return !args.NullOrEmpty() &&
+           args.Split(' ').Any(a => IsArg(a, name));
+  }
+
+  private static string GetParentArgValue(string name)
+  {
+    string[] args = Environment.GetCommandLineArgs();
+    for (int i = 1; i < args.Length; i++)
+    {
+      if (string.Equals(args[i], name, StringComparison.OrdinalIgnoreCase))
+        return i + 1 < args.Length ? args[i + 1] : null;
+      if (args[i].StartsWith(name + "=", StringComparison.OrdinalIgnoreCase))
+        return args[i].Substring(name.Length + 1);
+    }
+    return null;
+  }
+
+  private static bool IsArg(string arg, string name)
+  {
+    return string.Equals(arg, name, StringComparison.OrdinalIgnoreCase) ||
+           arg.StartsWith(name + "=", StringComparison.OrdinalIgnoreCase);
   }
 
   private void Kill()

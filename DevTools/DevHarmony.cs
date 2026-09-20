@@ -101,6 +101,8 @@ internal static class DevHarmony
 				break;
 		}
 
+		ChildProcessSteam.DisableInChildProcess();
+
 		if (Args is { headless: true })
 		{
 			BatchModeCompatibility.Enable();

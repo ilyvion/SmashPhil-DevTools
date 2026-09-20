@@ -29,7 +29,7 @@ public class ExpressionTree
       yield break;
     }
 
-    foreach (ITestFixture group in testManager.TestFixtures.OrderBy(group => group.Type.Assembly)
+    foreach (ITestFixture group in testManager.TestFixtures.OrderBy(group => group.Type.Assembly.FullName, StringComparer.Ordinal)
                .ThenBy(group => group, TestFixtureComparer.Default))
     {
       List<ITestFunction> matches = [];

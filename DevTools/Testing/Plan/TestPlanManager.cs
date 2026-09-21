@@ -21,7 +21,9 @@ internal class TestPlanManager : IDevToolWithMenu, ITestManager
 
   string ITestManager.ConfigName => "TestPlanConfig";
 
-  ITestConfig ITestManager.Config { get; } = new TestConfig();
+  private TestConfig config = new();
+
+  ITestConfig ITestManager.Config => config;
 
   public IEnumerable<ITestFixture> TestFixtures
   {
@@ -39,6 +41,7 @@ internal class TestPlanManager : IDevToolWithMenu, ITestManager
 
   bool IDevTool.Init(ModContentPack mod)
   {
+    config = this.LoadConfig<TestConfig>(mod);
     testPlans = LoadTestPlans(mod);
     if (testPlans.NullOrEmpty())
       return false;

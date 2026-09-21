@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using JetBrains.Annotations;
 using UnityEngine;
 using Verse;
@@ -30,6 +31,12 @@ internal class LogWatcher : IDisposable
     if (!LogCounts.ContainsKey(type))
     {
       LogCounts[type] = [];
+    }
+    // Unity often hands over an empty trace; the handler runs synchronously on the logging thread,
+    // so the current stack still points at the source of the log.
+    if (stackTrace.NullOrEmpty())
+    {
+      stackTrace = new StackTrace(skipFrames: 1, fNeedFileInfo: true).ToString();
     }
     LogCounts[type].Add(new LogEntry(msg, stackTrace));
   }

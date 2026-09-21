@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -128,11 +129,14 @@ public static class Test
   internal static void LogResults(ITestFixture fixture, List<ITestFunction> functions)
   {
     ITestGroup fixtureGroup = GetEntry(fixture);
-    Log(fixtureGroup, StatusMessage(fixtureGroup));
+    double totalMilliseconds = 0;
+    foreach (ITestFunction function in functions)
+      totalMilliseconds += GetEntry(function).Duration.Total;
+    Log(fixtureGroup, StatusMessage(fixtureGroup, totalMilliseconds));
     foreach (ITestFunction function in functions)
     {
       ITestGroup functionGroup = GetEntry(function);
-      Log(functionGroup, "--\t" + StatusMessage(functionGroup));
+      Log(functionGroup, "--\t" + StatusMessage(functionGroup, functionGroup.Duration.Total));
     }
     Log(fixtureGroup, string.Empty); // newline if fixture logged
     return;
@@ -155,7 +159,7 @@ public static class Test
     }
   }
 
-  internal static string StatusMessage(this ITestGroup group)
+  internal static string StatusMessage(this ITestGroup group, double milliseconds)
   {
     const string FailedLabel = "[Failed]";
     const string CanceledLabel = "[Canceled]";
@@ -175,7 +179,7 @@ public static class Test
       Status.NotRun => $"{NotRunLabel}   ",
       _ => throw new NotImplementedException(nameof(Status)),
     });
-    statusBuilder.Append($" {group.Label}");
+    statusBuilder.Append($" {group.Label} ({milliseconds.ToString("0", CultureInfo.InvariantCulture)} ms)");
     if (group.Status is Status.Failed)
     {
       if (!group.TestContext.NullOrEmpty())

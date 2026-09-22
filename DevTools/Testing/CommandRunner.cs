@@ -116,6 +116,13 @@ internal static class CommandRunner
       ManagerType.Plan => DevHarmony.GetDevTool<TestPlanManager>(mod),
       _ => throw new NotImplementedException(type.ToString())
     };
+    if (testManager is null && type == ManagerType.Plan)
+    {
+      Log.Error($"No TestPlanManager registered for {mod.PackageIdPlayerFacing}; " +
+                $"unable to run test plan '{result.TestPlan}'. Check that a TestPlans folder with " +
+                "valid plan xml exists in the mod.");
+      return result;
+    }
 
     TestRunner testRunner = selection switch
     {

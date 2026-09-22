@@ -24,7 +24,7 @@ internal sealed class TextLogWriter : ILogWriter
       mode = FileMode.Create;
     }
     fileStream = new FileStream(logger.LogConfig.FullPath, mode, FileAccess.Write, FileShare.ReadWrite);
-    writer = new StreamWriter(fileStream);
+    writer = new StreamWriter(fileStream) { AutoFlush = true };
   }
 
   void IDisposable.Dispose()
@@ -34,6 +34,7 @@ internal sealed class TextLogWriter : ILogWriter
 
   void ILogWriter.PostInit()
   {
+    SeekToEnd();
     writer.WriteLine($"{DateTime.Now.ToString("g", DateTimeFormatInfo.CurrentInfo)}");
     writer.WriteLine("");
   }
@@ -45,6 +46,16 @@ internal sealed class TextLogWriter : ILogWriter
 
   void ILogWriter.WriteLine(string message)
   {
+    // FileMode.Append only seeks to end-of-file once, at construction; it does not track writes made by
+    // other processes (parent and child both keep a long-lived stream open on the same Test.log across
+    // a test plan run), so a stream idle while another process appends must reseek before writing or it
+    // overwrites what the other process wrote in the meantime.
+    SeekToEnd();
     writer.WriteLine(message);
+  }
+
+  private void SeekToEnd()
+  {
+    fileStream.Seek(0, SeekOrigin.End);
   }
 }

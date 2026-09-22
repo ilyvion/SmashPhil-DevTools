@@ -20,9 +20,13 @@ internal sealed class TestProcess
   private const int DefaultTimeOut = 600000; // 10 minutes
 
   // Parent launch arguments that the child must share to use the same save/config/log locations.
-  // The log file is given its own name so the two processes don't overwrite each other's log.
+  // The log file is suffixed with the job's child index so siblings from the same plan don't
+  // overwrite each other's log.
   private const string LogFileArg = "-logfile";
   private static readonly string[] InheritedArgs = ["-savedatafolder", LogFileArg];
+
+  // Passed to the child so it can identify itself among its siblings, e.g. in its own logging.
+  private const string ChildIndexArg = "--child-index";
 
   private Process process;
   private bool timedOut;
@@ -51,7 +55,7 @@ internal sealed class TestProcess
       throw new InvalidOperationException("No process path available, test process must launch from within RimWorld.");
 
     StringBuilder claBuilder = new();
-    claBuilder.Append($"--pid \"{mod.PackageId}\" -e");
+    claBuilder.Append($"--pid \"{mod.PackageId}\" -e {ChildIndexArg} {job.childIndex}");
     foreach (string arg in InheritedArgs)
     {
       if (ContainsArg(job.commandLineArgs, arg) || GetParentArgValue(arg) is not { } value)
@@ -60,7 +64,7 @@ internal sealed class TestProcess
       if (arg == LogFileArg)
       {
         value = Path.Combine(Path.GetDirectoryName(value) ?? "",
-          $"{Path.GetFileNameWithoutExtension(value)}-child{Path.GetExtension(value)}");
+          $"{Path.GetFileNameWithoutExtension(value)}-child{job.childIndex}{Path.GetExtension(value)}");
       }
       // The game only recognizes -savedatafolder in the -name=value form; -logfile takes a separate value.
       claBuilder.Append(arg == LogFileArg ? $" {arg} \"{value}\"" : $" {arg}=\"{value}\"");

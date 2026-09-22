@@ -34,6 +34,9 @@ internal static class CommandRunner
     const string NoWindow = "-NoWindow";
     const string Headless = "-Headless";
 
+    // Set by TestProcess on children it spawns for a test plan, to identify the child among siblings.
+    const string ChildIndexArg = "--child-index";
+
     TestSelection selection = TestSelection.None;
     ManagerType type = ManagerType.Unit;
     string[] args = Environment.GetCommandLineArgs();
@@ -75,6 +78,10 @@ internal static class CommandRunner
           break;
         case ExitAtEndArg or ExitAtEndShort:
           result.exitOnFinish = true;
+          break;
+        case ChildIndexArg:
+          if (i + 1 < args.Length)
+            result.childIndex = int.Parse(args[++i]);
           break;
         case NoWindow:
           result.hideWindow = true;
@@ -150,6 +157,7 @@ internal static class CommandRunner
     public bool hideWindow;
     public bool exitOnFinish;
     public bool headless;
+    public int childIndex = -1;
 
     public int? port;
     public string sessionId;

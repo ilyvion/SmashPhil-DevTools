@@ -78,6 +78,7 @@ internal sealed class TestProcess
     process.StartInfo.EnvironmentVariables[ChildVariable] = "1";
     process.StartInfo.CreateNoWindow = false;
     process.StartInfo.WindowStyle = ProcessWindowStyle.Minimized;
+    ChildProcessFileDescriptors.PreventInheritance();
     Assert.IsTrue(process.Start(), "Process was unable to be started.");
   }
 

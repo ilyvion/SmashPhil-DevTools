@@ -28,8 +28,19 @@ internal sealed class TestProcess
   // Passed to the child so it can identify itself among its siblings, e.g. in its own logging.
   private const string ChildIndexArg = "--child-index";
 
+  // Flatpak Steam sometimes fatally asserts a child RimWorld process during its own Steam init, with no
+  // way for us to intervene from managed code before it happens (see ChildProcessFileDescriptors). When a
+  // child dies with this signature in its log, it's this known external fault rather than a real test
+  // failure, so it's retried instead of failed outright.
+  private const string SteamPipeAssertSignature = "fatal stalled cross-thread pipe";
+  private const int MaxSteamPipeAssertRetries = 3;
+
   private Process process;
   private bool timedOut;
+  private string fileName;
+  private string arguments;
+  private string childLogPath;
+  private int steamPipeAssertRetries;
 
   public ModContentPack mod;
   public TestPlanJob job;
@@ -50,7 +61,7 @@ internal sealed class TestProcess
       }
       ModsConfig.SaveFromList(job.loadWithMods);
     }
-    string fileName = Environment.GetCommandLineArgs()[0];
+    fileName = Environment.GetCommandLineArgs()[0];
     StringBuilder claBuilder = new();
     claBuilder.Append($"--pid \"{mod.PackageId}\" -e {ChildIndexArg} {job.childIndex}"); // -batchmode
     foreach (string arg in InheritedArgs)
@@ -62,6 +73,7 @@ internal sealed class TestProcess
       {
         value = Path.Combine(Path.GetDirectoryName(value) ?? "",
           $"{Path.GetFileNameWithoutExtension(value)}-child{job.childIndex}{Path.GetExtension(value)}");
+        childLogPath = value;
       }
       // The game only recognizes -savedatafolder in the -name=value form; -logfile takes a separate value.
       claBuilder.Append(arg == LogFileArg ? $" {arg} \"{value}\"" : $" {arg}=\"{value}\"");
@@ -70,10 +82,16 @@ internal sealed class TestProcess
     {
       claBuilder.Append($" {job.commandLineArgs}");
     }
+    arguments = claBuilder.ToString();
 
+    StartProcess();
+  }
+
+  private void StartProcess()
+  {
     process = new Process();
     process.StartInfo.FileName = fileName;
-    process.StartInfo.Arguments = claBuilder.ToString();
+    process.StartInfo.Arguments = arguments;
     process.StartInfo.UseShellExecute = false;
     process.StartInfo.EnvironmentVariables[ChildVariable] = "1";
     process.StartInfo.CreateNoWindow = false;
@@ -101,26 +119,55 @@ internal sealed class TestProcess
   {
     const float ProcessPollInterval = 0.5f;
 
-    float startTime = Time.realtimeSinceStartup;
-    float timeOut = job.timeOut > 0 ? job.timeOut : DefaultTimeOut;
+    while (true)
+    {
+      float startTime = Time.realtimeSinceStartup;
+      float timeOut = job.timeOut > 0 ? job.timeOut : DefaultTimeOut;
 
-    while (!process.HasExited)
-    {
-      if (Time.realtimeSinceStartup >= startTime + timeOut)
+      while (!process.HasExited)
       {
-        timedOut = true;
-        break;
+        if (Time.realtimeSinceStartup >= startTime + timeOut)
+        {
+          timedOut = true;
+          break;
+        }
+        yield return new WaitForSecondsRealtime(ProcessPollInterval);
       }
-      yield return new WaitForSecondsRealtime(ProcessPollInterval);
+      if (timedOut || !process.HasExited)
+      {
+        Test.Fail("Timed Out...");
+        Kill();
+        yield break;
+      }
+
+      int exitCode = process.ExitCode;
+      if (exitCode != 0 && steamPipeAssertRetries < MaxSteamPipeAssertRetries && CrashedWithSteamPipeAssert())
+      {
+        steamPipeAssertRetries++;
+        DevLog.Write(
+          $"Child process hit the known Flatpak Steam cross-process pipe assert; retrying ({steamPipeAssertRetries}/{MaxSteamPipeAssertRetries}).");
+        process.Dispose();
+        StartProcess();
+        continue;
+      }
+
+      DevLog.Write($"Finished with exit code {exitCode}");
+      Expect.AreEqual(expected: 0, exitCode, $"Process exited with code {exitCode}");
+      yield break;
     }
-    if (timedOut || !process.HasExited)
+  }
+
+  private bool CrashedWithSteamPipeAssert()
+  {
+    try
     {
-      Test.Fail("Timed Out...");
-      Kill();
+      return childLogPath != null && File.Exists(childLogPath) &&
+             File.ReadAllText(childLogPath).Contains(SteamPipeAssertSignature);
     }
-    int exitCode = process.ExitCode;
-    DevLog.Write($"Finished with exit code {exitCode}");
-    Expect.AreEqual(expected: 0, exitCode, $"Process exited with code {exitCode}");
+    catch (IOException)
+    {
+      return false;
+    }
   }
 
   private static bool ContainsArg(string args, string name)

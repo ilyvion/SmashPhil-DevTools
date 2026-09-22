@@ -27,6 +27,15 @@ public class Logger : IDisposable
     writerMutex = new Mutex(false, $"LoggerMutex_{Config.LogFileName}");
     file = new FileInfo(config.FullPath);
     IsOwner = ownerMutex.WaitOne(0);
+    if (IsOwner && Environment.GetEnvironmentVariable(TestProcess.ChildVariable) == "1")
+    {
+      // Named mutexes aren't reliably arbitrated cross-process under Mono on Linux, so the race above
+      // can spuriously hand ownership to a test-plan child even while the parent still holds it. A
+      // child must never truncate the shared log its parent and siblings are appending to, so it
+      // unconditionally declines ownership rather than trusting the race.
+      ownerMutex.ReleaseMutex();
+      IsOwner = false;
+    }
   }
 
   public bool IsOwner { get; }

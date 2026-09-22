@@ -72,8 +72,10 @@ internal class TestPlanManager : IDevToolWithMenu, ITestManager
         if (testPlan.IsValid)
         {
           PlanModule module = new(mod, testPlan);
-          foreach (TestPlanJob job in testPlan.jobs)
+          for (int i = 0; i < testPlan.jobs.Count; i++)
           {
+            TestPlanJob job = testPlan.jobs[i];
+            job.childIndex = i;
             TestPlanFixture fixture = new(module, job);
             fixture.MetaData.Load(typeof(TestProcess));
             fixture.Args = [];

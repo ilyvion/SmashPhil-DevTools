@@ -28,6 +28,9 @@ internal static class CommandRunner
     const string ExitAtEndArg = "--exit";
     const string ExitAtEndShort = "-e";
 
+    // Set by TestProcess on children it spawns for a test plan, to identify the child among siblings.
+    const string ChildIndexArg = "--child-index";
+
     TestCommand testToRun = TestCommand.None;
     string[] args = Environment.GetCommandLineArgs();
     if (args.Length == 0)
@@ -62,6 +65,10 @@ internal static class CommandRunner
           break;
         case ExitAtEndArg or ExitAtEndShort:
           result.exitOnFinish = true;
+          break;
+        case ChildIndexArg:
+          if (i + 1 < args.Length)
+            result.childIndex = int.Parse(args[++i]);
           break;
         case BatchMode:
           result.headless = true;
@@ -128,5 +135,6 @@ internal static class CommandRunner
     public bool headless;
     public bool exitOnFinish;
     public bool graphicsDevice = true;
+    public int childIndex = -1;
   }
 }

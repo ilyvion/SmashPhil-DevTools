@@ -69,7 +69,11 @@ internal class TestPlanManager : IDevToolWithMenu, ITestManager
       try
       {
         TestPlan testPlan = DirectXmlLoader.ItemFromXmlFile<TestPlan>(file.FullName);
-        if (testPlan.IsValid)
+        if (!testPlan.IsValid)
+        {
+          Log.Warning($"TestPlan {file.FullName} has no jobs; skipping.");
+        }
+        else
         {
           PlanModule module = new(mod, testPlan);
           for (int i = 0; i < testPlan.jobs.Count; i++)

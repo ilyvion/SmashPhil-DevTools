@@ -79,7 +79,17 @@ internal static class DevHarmony
 					Log.Error($"Exception thrown loading type {type.Name} for {devTool}.\n{ex}");
 				}
 			}
-			if (anyRegistered && devTool.Init(mod))
+			bool initialized;
+			try
+			{
+				initialized = anyRegistered && devTool.Init(mod);
+			}
+			catch (Exception ex)
+			{
+				Log.Error($"Exception thrown initializing {devTool} for {mod.PackageIdPlayerFacing}.\n{ex}");
+				initialized = false;
+			}
+			if (initialized)
 			{
 				if (!ModDevTools.TryGetValue(mod, out List<IDevTool> tools))
 				{
@@ -96,7 +106,15 @@ internal static class DevHarmony
 		// Run commands for matching pid only
 		foreach (ModContentPack mod in LoadedModManager.RunningModsListForReading)
 		{
-			Args = CommandRunner.ExecuteCommandLineArgs(mod);
+			try
+			{
+				Args = CommandRunner.ExecuteCommandLineArgs(mod);
+			}
+			catch (Exception ex)
+			{
+				Log.Error($"Exception thrown executing command line args for {mod.PackageIdPlayerFacing}.\n{ex}");
+				Args = null;
+			}
 			if (Args != null)
 				break;
 		}

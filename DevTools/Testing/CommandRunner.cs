@@ -92,7 +92,15 @@ internal static class CommandRunner
     {
       case TestCommand.Plan:
         {
-          DevHarmony.GetDevTool<TestPlanManager>(mod).Run(result.testPlan);
+          TestPlanManager planManager = DevHarmony.GetDevTool<TestPlanManager>(mod);
+          if (planManager is null)
+          {
+            Log.Error($"No TestPlanManager registered for {mod.PackageIdPlayerFacing}; " +
+                      $"unable to run test plan '{result.testPlan}'. Check that a TestPlans folder with " +
+                      "valid plan xml exists in the mod.");
+            break;
+          }
+          planManager.Run(result.testPlan);
         }
         break;
       case TestCommand.Unit:

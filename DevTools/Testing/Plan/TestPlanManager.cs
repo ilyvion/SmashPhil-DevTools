@@ -110,7 +110,10 @@ internal class TestPlanManager : IDevToolWithMenu, ITestManager
     if (DevHarmony.Args is { exitOnFinish: true })
     {
       bool anyFailed = TestFixtures.Any(group => group.Status == Status.Failed);
-      DevLog.Write($"Test runner finished. Result: {(anyFailed ? "Failed" : "Passed")}");
+      // Distinct from "Test runner finished." (written by TestFixtureManager/SmokeTestManager) so a
+      // multi-job plan's Test.log has one unambiguous line for the plan's own overall result, even
+      // though a job may itself run a nested unit-test suite that writes its own "Test runner finished." line.
+      DevLog.Write($"Test plan finished. Result: {(anyFailed ? "Failed" : "Passed")}");
       Application.Quit(anyFailed ? 1 : 0);
       return;
     }

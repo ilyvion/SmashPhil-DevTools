@@ -135,6 +135,11 @@ internal static class DevHarmony
         break;
     }
 
+    if (Args != null)
+    {
+      RunInBackground.Enable();
+    }
+
     if (Args is { hideWindow: true })
     {
       BatchModeCompatibility.Enable();

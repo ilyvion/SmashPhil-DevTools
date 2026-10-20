@@ -165,9 +165,13 @@ public sealed class TestRunner
     using Test.SessionScope session = new(testManager);
     using TestEnabler ute = new(this);
 
-    // Running unit tests from command line will jump into this coroutine before Root.Start has a 
-    // chance to run. Skip 1 frame so all Root fields have a chance to initialize.
-    yield return null;
+    // Running unit tests from command line will jump into this coroutine before Root.Start has a
+    // chance to run. Wait until the queued long events (e.g. InitializingInterface, which creates
+    // Root.uiRoot) have run, since a yield may resume within the same frame on RimWorld 1.7.
+    do
+    {
+      yield return null;
+    } while (LongEventHandler.AnyEventNowOrWaiting);
 
     uint seed = config.Seed ?? (uint)Rand.Int;
     using RandBlockPersistent randBlock = new(seed);

@@ -133,7 +133,11 @@ internal static class CommandRunner
     };
     if (result.port != null && !result.sessionId.NullOrEmpty())
     {
+#if v1_7
       testRunner.ConnectTcp(result.port.Value, result.sessionId);
+#else
+      Log.Warning("Streaming test results over TCP is not supported on RimWorld 1.6.");
+#endif
     }
 
     if (testManager is { Config: ITestActions testActions })

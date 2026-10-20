@@ -32,8 +32,10 @@ public sealed class TestRunner
   private readonly List<TestAction> preTestActions = [];
   private readonly List<TestAction> postTestActions = [];
 
+#if v1_7
   private int tcpPort;
   private string tcpSessionId;
+#endif
   private Map currentMap;
   private TransitionState state = TransitionState.Idle;
 
@@ -113,11 +115,13 @@ public sealed class TestRunner
     postTestActions.Add(testAction);
   }
 
+#if v1_7
   public void ConnectTcp(int port, string sessionId)
   {
     tcpPort = port;
     tcpSessionId = sessionId;
   }
+#endif
 
   public void Run()
   {
@@ -153,7 +157,9 @@ public sealed class TestRunner
   private IEnumerator TestRoutine(TestFilter filter)
   {
     Stopwatch stopwatch = new();
+#if v1_7
     using var tcp = tcpPort != 0 ? new TcpBridge(tcpPort, tcpSessionId, stopwatch) : null;
+#endif
     stopwatch.Start();
 
     ITestConfig config = testManager.Config;
@@ -311,7 +317,9 @@ public sealed class TestRunner
             } while (attempts <= maxRetries && function.Status is Status.Failed);
 
             report.Add(function);
+#if v1_7
             tcp?.SendResult(function);
+#endif
 
             if (ShouldStop(function))
               break;

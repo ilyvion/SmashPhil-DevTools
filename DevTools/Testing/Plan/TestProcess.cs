@@ -50,7 +50,11 @@ internal sealed class TestProcess
       }
       ModsConfig.SaveFromList(job.loadWithMods);
     }
+#if v1_7
     string fileName = Environment.ProcessPath;
+#else
+    string fileName = Process.GetCurrentProcess().MainModule?.FileName;
+#endif
     if (fileName == null || !File.Exists(fileName))
       throw new InvalidOperationException("No process path available, test process must launch from within RimWorld.");
 

@@ -19,9 +19,12 @@
     <DefineConstants>$(DefineConstants);v1_7</DefineConstants>
   </PropertyGroup>
 
-  <!-- The test manifest needs System.Text.Json and ScopedRollback needs ref fields, so both are 1.7 only -->
+  <!--
+    The test manifest and TCP result stream need System.Text.Json, TestMessage needs init accessors,
+    and ScopedRollback needs ref fields, so all are 1.7 only
+  -->
   <ItemGroup Condition=" '$(RimWorldVersion)' == '1.6' ">
-    <Compile Remove="Testing/DataWriter.cs;Testing/IJsonSerializable.cs;Generated/ScopedRollback.cs" />
+    <Compile Remove="Testing/DataWriter.cs;Testing/IJsonSerializable.cs;Testing/TestMessage.cs;Testing/Test/TcpBridge.cs;Generated/ScopedRollback.cs" />
   </ItemGroup>
 
   <!-- Harmony is kept private so it doesn't flow into projects referencing DevTools, which bring their own -->

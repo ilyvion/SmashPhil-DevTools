@@ -7,79 +7,36 @@
     <RootNamespace>DevTools</RootNamespace>
     <AssemblyName>DevTools</AssemblyName>
 
-    <OutDir>$(ModDir)\1.7\Assemblies\</OutDir>
+    <OutDir>$(ModDir)\$(RimWorldVersion)\Assemblies\</OutDir>
+    <DefaultItemExcludes>$(DefaultItemExcludes);obj\**</DefaultItemExcludes>
   </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Lib.Harmony.Ref" Version="2.4.3" />
+  <PropertyGroup Condition=" '$(RimWorldVersion)' == '1.6' ">
+    <TargetFramework>net48</TargetFramework>
+    <DefineConstants>$(DefineConstants);v1_6</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(RimWorldVersion)' == '1.7' ">
+    <DefineConstants>$(DefineConstants);v1_7</DefineConstants>
+  </PropertyGroup>
 
-    <Reference Include="Brutal.Glfw">
-      <HintPath>$(RefDir)\Brutal.Glfw.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-
-    <Reference Include="Brutal.ImGui">
-      <HintPath>$(RefDir)\Brutal.ImGui.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-
-    <Reference Include="Brutal.Core.Common">
-      <HintPath>$(RefDir)\Brutal.Core.Common.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-
-    <Reference Include="Brutal.Core.Numerics">
-      <HintPath>$(RefDir)\Brutal.Core.Numerics.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-
-    <Reference Include="Brutal.Vulkan">
-      <HintPath>$(RefDir)\Brutal.Vulkan.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-
-    <Reference Include="Brutal.Vulkan.Abstractions">
-      <HintPath>$(RefDir)\Brutal.Vulkan.Abstractions.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
+  <!-- The test manifest needs System.Text.Json and ScopedRollback needs ref fields, so both are 1.7 only -->
+  <ItemGroup Condition=" '$(RimWorldVersion)' == '1.6' ">
+    <Compile Remove="Testing/DataWriter.cs;Testing/IJsonSerializable.cs;Generated/ScopedRollback.cs" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(UseKrafsPackageRef)' == 'true' AND '$(AnalyzerProject)' != 'true'">
+  <!-- Harmony is kept private so it doesn't flow into projects referencing DevTools, which bring their own -->
+  <ItemGroup Condition=" '$(RimWorldVersion)' == '1.6' ">
+    <PackageReference Include="Lib.Harmony.Ref" Version="2.4.3" PrivateAssets="all" />
+  </ItemGroup>
+  <ItemGroup Condition=" '$(RimWorldVersion)' == '1.7' ">
+    <PackageReference Include="Lib.Harmony" Version="3.0.*-*" ExcludeAssets="runtime" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(RimWorldVersion)' == '1.6' AND '$(AnalyzerProject)' != 'true'">
     <PackageReference Include="Krafs.Rimworld.Ref" Version="1.6.*" />
   </ItemGroup>
-  <ItemGroup Condition="'$(UseKrafsPackageRef)' != 'true' AND '$(AnalyzerProject)' != 'true'">
-    <Reference Include="System">
-      <HintPath>$(RefDir)\System.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="System.Xml">
-      <HintPath>$(RefDir)\System.Xml.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="System.Xml.Linq">
-      <HintPath>$(RefDir)\System.Xml.Linq.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="mscorlib">
-      <HintPath>$(RefDir)\mscorlib.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="UnityStubs">
-      <HintPath>$(RefDir)\UnityStubs.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Assembly-CSharp">
-      <HintPath>$(RefDir)\Assembly-CSharp.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Waylith">
-      <HintPath>$(RefDir)\Waylith.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Waylith.UnityCompat">
-      <HintPath>$(RefDir)\Waylith.UnityCompat.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
+  <ItemGroup Condition="'$(RimWorldVersion)' == '1.7' AND '$(AnalyzerProject)' != 'true'">
+    <PackageReference Include="Krafs.Rimworld.Ref" Version="1.7.*-*" />
   </ItemGroup>
 
   <ItemGroup>

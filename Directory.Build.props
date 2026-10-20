@@ -1,4 +1,13 @@
 <Project>
+  <!--
+    RimWorldVersion selects the game version to build against (1.6 or 1.7). Each version restores
+    into its own obj folder.
+  -->
+  <PropertyGroup>
+    <RimWorldVersion Condition=" '$(RimWorldVersion)' == '' ">1.7</RimWorldVersion>
+    <BaseIntermediateOutputPath>obj\$(RimWorldVersion)\</BaseIntermediateOutputPath>
+  </PropertyGroup>
+
   <PropertyGroup>
     <Configurations>Debug;Unstable;Release;ReleaseTesting;</Configurations>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>

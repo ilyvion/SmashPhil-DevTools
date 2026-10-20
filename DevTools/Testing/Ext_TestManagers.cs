@@ -49,6 +49,7 @@ public static class Ext_TestManagers
 
     public void SaveMetaData()
     {
+#if v1_7
       const string SchemaVersion = "1.0.0";
       foreach (TestManifest manifest in GenerateManifests(manager))
       {
@@ -105,6 +106,7 @@ public static class Ext_TestManagers
           yield return manifest;
         }
       }
+#endif
     }
 
     public TestRunner GetRunnerWith([NotNull] TestFilter filter)

@@ -25,6 +25,9 @@ internal sealed class TestProcess
   private const string LogFileArg = "-logfile";
   private static readonly string[] InheritedArgs = ["-savedatafolder", LogFileArg];
 
+  // Parent launch flags passed on to the child; an unfocused child window idles instead of running its tests.
+  private static readonly string[] InheritedFlags = ["-NoWindow"];
+
   // Passed to the child so it can identify itself among its siblings, e.g. in its own logging.
   private const string ChildIndexArg = "--child-index";
 
@@ -72,6 +75,11 @@ internal sealed class TestProcess
       }
       // The game only recognizes -savedatafolder in the -name=value form; -logfile takes a separate value.
       claBuilder.Append(arg == LogFileArg ? $" {arg} \"{value}\"" : $" {arg}=\"{value}\"");
+    }
+    foreach (string flag in InheritedFlags)
+    {
+      if (!ContainsArg(job.commandLineArgs, flag) && HasParentFlag(flag))
+        claBuilder.Append($" {flag}");
     }
     if (!job.commandLineArgs.NullOrEmpty())
     {
@@ -148,6 +156,12 @@ internal sealed class TestProcess
         return args[i].Substring(name.Length + 1);
     }
     return null;
+  }
+
+  private static bool HasParentFlag(string name)
+  {
+    return Environment.GetCommandLineArgs().Skip(1)
+      .Any(a => string.Equals(a, name, StringComparison.OrdinalIgnoreCase));
   }
 
   private static bool IsArg(string arg, string name)
